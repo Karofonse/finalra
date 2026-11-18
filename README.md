@@ -136,3 +136,17 @@ Si los botones del panel no responden al toque, revisar que exista un `EventSyst
 | `GET /state` | `{"analog":2048,"percent":50.0,"volts":1.65,"button":false,"led1":true,"led2":false,"uptime":12345}` |
 | `GET /led?id=1&state=toggle` | cambia el LED (`state` = `0`, `1` o `toggle`) y devuelve el estado completo |
 | `GET /voltages` | `{"nodes":[{"id":"N1","mv":2200},{"id":"N2","mv":1100},{"id":"N3","mv":1650}],"uptime":12345}` |
+
+## Simulador (probar sin hardware)
+
+`simulador/simulador_esp32.py` responde igual que el ESP32 (`/state`, `/led`, `/voltages`) con valores simulados. Solo necesita Python 3.
+
+```bash
+python simulador/simulador_esp32.py
+```
+
+1. Abrir `http://localhost:8080/` en el navegador: es la "protoboard" virtual (potenciómetros, pulsador y LEDs).
+2. En Unity pulsar Play, escribir `127.0.0.1:8080` en el campo de IP y tocar **Conectar**.
+3. Para probar desde el teléfono, usar la IP del computador que imprime el simulador (misma red Wi-Fi; puede que el firewall pida permiso).
+
+El simulador es solo para desarrollo: la entrega y el video requieren el circuito físico.
