@@ -32,7 +32,8 @@ public class Esp32Http : MonoBehaviour
 
     void Awake()
     {
-        Ip = PlayerPrefs.GetString(ClaveIp, ipPorDefecto);
+        Ip = Limpiar(PlayerPrefs.GetString(ClaveIp, ipPorDefecto));
+        if (Ip.Length == 0) Ip = ipPorDefecto;
     }
 
     void OnEnable()
@@ -48,11 +49,30 @@ public class Esp32Http : MonoBehaviour
 
     public void CambiarIp(string nuevaIp)
     {
-        nuevaIp = (nuevaIp ?? "").Trim();
+        nuevaIp = Limpiar(nuevaIp);
         if (nuevaIp.Length == 0) return;
         Ip = nuevaIp;
         PlayerPrefs.SetString(ClaveIp, Ip);
         PlayerPrefs.Save();
+
+        // Reinicia el sondeo para que la nueva direccion se use de inmediato
+        if (isActiveAndEnabled)
+        {
+            if (sondeo != null) StopCoroutine(sondeo);
+            sondeo = StartCoroutine(Sondear());
+        }
+    }
+
+    /// <summary>Quita espacios y el prefijo http:// que el usuario pueda haber escrito.</summary>
+    static string Limpiar(string texto)
+    {
+        if (texto == null) return "";
+        var limpio = new System.Text.StringBuilder();
+        foreach (char c in texto)
+            if (!char.IsWhiteSpace(c)) limpio.Append(c);
+        string r = limpio.ToString();
+        if (r.StartsWith("http://")) r = r.Substring(7);
+        return r.TrimEnd('/');
     }
 
     /// <summary>Envia un comando, por ejemplo "/led?id=1&state=toggle".</summary>
@@ -76,10 +96,30 @@ public class Esp32Http : MonoBehaviour
         string url = "http://" + Ip + ruta;
         float inicio = Time.realtimeSinceStartup;
 
-        using (UnityWebRequest peticion = UnityWebRequest.Get(url))
+        // Una direccion mal escrita o HTTP bloqueado lanzan excepcion: no debe detener el sondeo
+        UnityWebRequest peticion = null;
+        UnityWebRequestAsyncOperation operacion = null;
+        try
         {
+            peticion = UnityWebRequest.Get(url);
             peticion.timeout = timeoutSegundos;
-            yield return peticion.SendWebRequest();
+            operacion = peticion.SendWebRequest();
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("No se pudo conectar a " + url + ": " + e.Message);
+            if (peticion != null) peticion.Dispose();
+            peticion = null;
+        }
+        if (peticion == null)
+        {
+            if (actualizaConexion) MarcarConexion(false);
+            yield break;
+        }
+
+        using (peticion)
+        {
+            yield return operacion;
 
             bool ok = peticion.result == UnityWebRequest.Result.Success;
             if (ok)
