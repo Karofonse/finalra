@@ -91,6 +91,9 @@ public static class ConstructorEscenasRA
         t.localRotation = Quaternion.identity;
         t.localScale = Vector3.one;
 
+        // Menos reflejo del cielo sobre las piezas (en AR no hay cielo real que reflejar)
+        RenderSettings.reflectionIntensity = 0.35f;
+
         Scene escena = SceneManager.GetActiveScene();
         EditorSceneManager.MarkSceneDirty(escena);
         if (!string.IsNullOrEmpty(escena.path)) EditorSceneManager.SaveScene(escena);
@@ -115,9 +118,10 @@ public static class ConstructorEscenasRA
 
         Esp32Http cliente = CrearCliente(raiz.transform, "/state");
 
-        // ----- Panel flotante en espacio mundial (25.6 cm x 16.8 cm) -----
-        GameObject canvasGO = CrearCanvasMundo("PanelIoT", raiz.transform, new Vector2(640, 420), 0.0004f);
-        canvasGO.transform.localPosition = new Vector3(0f, 0.12f, 0f);
+        // ----- Panel flotante en espacio mundial (16 cm x 10.5 cm), justo encima del marcador -----
+        // Es mas angosto que la protoboard (22 cm) para que quepa entero en la pantalla del telefono.
+        GameObject canvasGO = CrearCanvasMundo("PanelIoT", raiz.transform, new Vector2(640, 420), 0.00025f);
+        canvasGO.transform.localPosition = new Vector3(0f, 0.075f, 0.02f);
         Transform c = canvasGO.transform;
 
         Image fondo = Imagen(c, "Fondo", SpriteUI, ColorPanel, Centro, Vector2.zero, new Vector2(640, 420));
@@ -914,11 +918,12 @@ public static class ConstructorEscenasRA
     /// <summary>Define una sola vez el acabado de los materiales compartidos.</summary>
     static void PrepararMateriales()
     {
-        Mat("Plata", new Color(0.82f, 0.82f, 0.84f), false, 0.95f, 0.75f);
+        Mat("Plata", new Color(0.82f, 0.82f, 0.84f), false, 0.7f, 0.5f);
         Mat("PinDorado", new Color(0.95f, 0.78f, 0.3f), false, 1f, 0.8f);
         Mat("PiezaGris", new Color(0.7f, 0.7f, 0.72f), false, 0.85f, 0.6f);
-        Mat("PiezaNegra", new Color(0.05f, 0.055f, 0.06f), false, 0f, 0.55f);
-        Mat("PlacaESP32", new Color(0.03f, 0.05f, 0.09f), false, 0.1f, 0.7f);
+        Mat("PiezaNegra", new Color(0.05f, 0.055f, 0.06f), false, 0f, 0.3f);
+        // Poco brillo: una placa muy pulida refleja el cielo y en el telefono se ve blanca
+        Mat("PlacaESP32", new Color(0.03f, 0.05f, 0.09f), false, 0f, 0.25f);
         Mat("Protoboard", new Color(0.93f, 0.93f, 0.9f), false, 0f, 0.45f);
         Mat("Resistencia", new Color(0.82f, 0.68f, 0.5f), false, 0f, 0.5f);
         Mat("Potenciometro", new Color(0.12f, 0.3f, 0.75f), false, 0f, 0.6f);
