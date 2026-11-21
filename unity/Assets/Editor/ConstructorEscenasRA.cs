@@ -204,6 +204,8 @@ public static class ConstructorEscenasRA
         }
         gemelo.etiquetas = etiquetas.ToArray();
 
+        CrearMultimetro(raiz.transform);
+
         // ----- Sondas del usuario y guias que senalan donde van -----
         Material matRojo = Mat("SondaRoja", new Color(0.95f, 0.1f, 0.1f), true);
         Material matNegro = Mat("SondaNegra", new Color(0.05f, 0.05f, 0.05f), true);
@@ -434,15 +436,33 @@ public static class ConstructorEscenasRA
         go.transform.localRotation = Quaternion.LookRotation(direccion.normalized);
     }
 
-    /// <summary>Resistencia de 16 mm centrada en (x, z). A lo largo de X, o de Z si vertical.</summary>
+    /// <summary>Resistencia de 16 mm centrada en (x, z), con sus bandas de color. A lo largo de X, o de Z si vertical.</summary>
     static void Resistencia(Transform padre, string nombre, float x, float z, Material material, bool vertical)
     {
+        Quaternion giro = vertical ? Quaternion.Euler(90f, 0f, 0f) : Quaternion.Euler(0f, 0f, 90f);
         GameObject go = Pieza(PrimitiveType.Cylinder, nombre, padre, new Vector3(x, 0.0115f, z),
                               new Vector3(0.006f, 0.008f, 0.006f), material);
-        go.transform.localRotation = vertical ? Quaternion.Euler(90f, 0f, 0f) : Quaternion.Euler(0f, 0f, 90f);
+        go.transform.localRotation = giro;
+
+        // 10k = cafe, negro, naranja.  220 = rojo, rojo, cafe.  La cuarta banda (dorada) es la tolerancia.
+        bool es220 = nombre.StartsWith("R220");
+        Material cafe = Mat("BandaCafe", new Color(0.4f, 0.22f, 0.08f), true);
+        Material negra = Mat("BandaNegra", new Color(0.05f, 0.05f, 0.05f), true);
+        Material naranja = Mat("BandaNaranja", new Color(1f, 0.5f, 0.05f), true);
+        Material roja = Mat("BandaRoja", new Color(0.85f, 0.1f, 0.1f), true);
+        Material dorada = Mat("BandaDorada", new Color(0.8f, 0.65f, 0.2f), true);
+        Material[] bandas = es220 ? new[] { roja, roja, cafe, dorada } : new[] { cafe, negra, naranja, dorada };
+        float[] desplazamientos = { -0.0045f, -0.0022f, 0.0001f, 0.0045f };
+
+        for (int b = 0; b < bandas.Length; b++)
+        {
+            Vector3 pos = vertical ? new Vector3(x, 0.0115f, z + desplazamientos[b]) : new Vector3(x + desplazamientos[b], 0.0115f, z);
+            GameObject banda = Pieza(PrimitiveType.Cylinder, nombre + "_Banda" + b, padre, pos, new Vector3(0.0064f, 0.0005f, 0.0064f), bandas[b]);
+            banda.transform.localRotation = giro;
+        }
     }
 
-    /// <summary>Protoboard de 22 x 7 cm con rieles de alimentacion y el ESP32 a la izquierda.</summary>
+    /// <summary>Protoboard de 22 x 7 cm con agujeros, rieles de alimentacion y el ESP32 a la izquierda.</summary>
     static void CrearProtoboardConEsp32(Transform c)
     {
         Material blanco = Mat("Protoboard", new Color(0.93f, 0.93f, 0.9f), false);
@@ -450,16 +470,93 @@ public static class ConstructorEscenasRA
         Material rielAzul = Mat("CableAzul", new Color(0.1f, 0.3f, 0.9f), false);
         Material pcb = Mat("PiezaNegra", new Color(0.08f, 0.09f, 0.1f), false);
         Material plata = Mat("Plata", new Color(0.78f, 0.78f, 0.8f), false);
+        Material dorado = Mat("PinDorado", new Color(0.85f, 0.7f, 0.25f), false);
+        Material gris = Mat("PiezaGris", new Color(0.6f, 0.6f, 0.62f), false);
 
+        // Cuerpo y cara superior con los agujeros
         Pieza(PrimitiveType.Cube, "Protoboard", c, new Vector3(0f, 0.004f, 0f), new Vector3(0.22f, 0.008f, 0.07f), blanco);
-        Pieza(PrimitiveType.Cube, "Riel3V3", c, new Vector3(0f, 0.0083f, 0.030f), new Vector3(0.21f, 0.0006f, 0.002f), rielRojo);
-        Pieza(PrimitiveType.Cube, "RielGND", c, new Vector3(0f, 0.0083f, -0.030f), new Vector3(0.21f, 0.0006f, 0.002f), rielAzul);
+        GameObject cara = Pieza(PrimitiveType.Quad, "ProtoboardAgujeros", c, new Vector3(0f, 0.00805f, 0f), new Vector3(0.22f, 0.07f, 1f), MatAgujeros());
+        cara.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        Pieza(PrimitiveType.Cube, "Riel3V3", c, new Vector3(0f, 0.0083f, 0.030f), new Vector3(0.21f, 0.0006f, 0.0012f), rielRojo);
+        Pieza(PrimitiveType.Cube, "RielGND", c, new Vector3(0f, 0.0083f, -0.030f), new Vector3(0.21f, 0.0006f, 0.0012f), rielAzul);
 
+        // ESP32 DevKit: placa, modulo Wi-Fi con antena, chip, USB, botones EN/BOOT y dos filas de 15 pines
         Pieza(PrimitiveType.Cube, "ESP32", c, new Vector3(-0.075f, 0.010f, 0f), new Vector3(0.05f, 0.004f, 0.028f), pcb);
         Pieza(PrimitiveType.Cube, "ESP32_Modulo", c, new Vector3(-0.083f, 0.0135f, 0f), new Vector3(0.018f, 0.003f, 0.016f), plata);
-        Pieza(PrimitiveType.Cube, "ESP32_USB", c, new Vector3(-0.099f, 0.013f, 0f), new Vector3(0.006f, 0.003f, 0.008f), plata);
+        Pieza(PrimitiveType.Cube, "ESP32_Antena", c, new Vector3(-0.0955f, 0.0123f, 0f), new Vector3(0.005f, 0.0006f, 0.016f), dorado);
+        Pieza(PrimitiveType.Cube, "ESP32_Chip", c, new Vector3(-0.066f, 0.0125f, 0f), new Vector3(0.005f, 0.001f, 0.005f), gris);
+        Pieza(PrimitiveType.Cube, "ESP32_USB", c, new Vector3(-0.053f, 0.0135f, 0f), new Vector3(0.006f, 0.003f, 0.008f), plata);
+        Pieza(PrimitiveType.Cube, "ESP32_BotonEN", c, new Vector3(-0.056f, 0.0127f, 0.008f), new Vector3(0.003f, 0.0014f, 0.003f), gris);
+        Pieza(PrimitiveType.Cube, "ESP32_BotonBOOT", c, new Vector3(-0.056f, 0.0127f, -0.008f), new Vector3(0.003f, 0.0014f, 0.003f), gris);
+        for (int n = 0; n < 15; n++)
+        {
+            float x = -0.097f + n * 0.00314f;
+            Pieza(PrimitiveType.Cube, "ESP32_Pin", c, new Vector3(x, 0.0124f, 0.0125f), new Vector3(0.0012f, 0.0008f, 0.0012f), dorado);
+            Pieza(PrimitiveType.Cube, "ESP32_Pin", c, new Vector3(x, 0.0124f, -0.0125f), new Vector3(0.0012f, 0.0008f, 0.0012f), dorado);
+        }
         Cable(c, new Vector3(-0.060f, AltoCable, 0.014f), new Vector3(-0.060f, AltoCable, 0.030f), rielRojo);   // 3V3
         Cable(c, new Vector3(-0.068f, AltoCable, -0.014f), new Vector3(-0.068f, AltoCable, -0.030f), rielAzul); // GND
+    }
+
+    /// <summary>Material con la textura de agujeros de la protoboard (se genera una sola vez).</summary>
+    static Material MatAgujeros()
+    {
+        Material material = Mat("ProtoboardAgujeros", Color.white, true);
+        const string ruta = "Assets/Materiales/ProtoboardAgujeros.png";
+
+        if (AssetDatabase.LoadAssetAtPath<Texture2D>(ruta) == null)
+        {
+            const int ancho = 880, alto = 280;      // 40 pixeles por centimetro
+            Color32 fondo = new Color32(237, 237, 230, 255);
+            Color32 agujero = new Color32(60, 60, 64, 255);
+            Color32 canal = new Color32(205, 205, 196, 255);
+            Color32[] pixeles = new Color32[ancho * alto];
+            for (int k = 0; k < pixeles.Length; k++) pixeles[k] = fondo;
+
+            // Canal central
+            for (int y = 134; y < 146; y++)
+                for (int x = 10; x < ancho - 10; x++) pixeles[y * ancho + x] = canal;
+
+            // Filas de agujeros: dos de riel a cada lado y dos bloques de cinco
+            int[] filas = { 12, 22, 60, 72, 84, 96, 108, 172, 184, 196, 208, 220, 258, 268 };
+            foreach (int fy in filas)
+                for (int fx = 20; fx < ancho - 16; fx += 10)
+                    for (int dy = 0; dy < 4; dy++)
+                        for (int dx = 0; dx < 4; dx++)
+                            pixeles[(fy + dy) * ancho + fx + dx] = agujero;
+
+            Texture2D textura = new Texture2D(ancho, alto, TextureFormat.RGBA32, false);
+            textura.SetPixels32(pixeles);
+            textura.Apply();
+            System.IO.File.WriteAllBytes(ruta, textura.EncodeToPNG());
+            Object.DestroyImmediate(textura);
+            AssetDatabase.ImportAsset(ruta);
+        }
+
+        material.mainTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(ruta);
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    /// <summary>Multimetro 3D de adorno, a la derecha del marcador.</summary>
+    static void CrearMultimetro(Transform raiz)
+    {
+        Material amarillo = Mat("MultimetroCuerpo", new Color(0.95f, 0.75f, 0.1f), false);
+        Material negro = Mat("PiezaNegra", new Color(0.08f, 0.09f, 0.1f), false);
+        Material pantalla = Mat("MultimetroPantalla", new Color(0.62f, 0.72f, 0.58f), true);
+        Material rojo = Mat("SondaRoja", new Color(0.95f, 0.1f, 0.1f), true);
+
+        GameObject m = new GameObject("Multimetro3D");
+        m.transform.SetParent(raiz, false);
+        m.transform.localPosition = new Vector3(0.095f, 0f, 0f);
+        Transform t = m.transform;
+        Pieza(PrimitiveType.Cube, "Cuerpo", t, new Vector3(0f, 0.006f, 0f), new Vector3(0.036f, 0.012f, 0.072f), amarillo);
+        Pieza(PrimitiveType.Cube, "Marco", t, new Vector3(0f, 0.0122f, 0.020f), new Vector3(0.030f, 0.0006f, 0.022f), negro);
+        Pieza(PrimitiveType.Cube, "Pantalla", t, new Vector3(0f, 0.0126f, 0.020f), new Vector3(0.026f, 0.0006f, 0.016f), pantalla);
+        Pieza(PrimitiveType.Cylinder, "Selector", t, new Vector3(0f, 0.0135f, -0.006f), new Vector3(0.020f, 0.0015f, 0.020f), negro);
+        Pieza(PrimitiveType.Cube, "SelectorMarca", t, new Vector3(0f, 0.0153f, -0.001f), new Vector3(0.002f, 0.0006f, 0.008f), pantalla);
+        Pieza(PrimitiveType.Cylinder, "BorneCOM", t, new Vector3(-0.008f, 0.0125f, -0.028f), new Vector3(0.005f, 0.0008f, 0.005f), negro);
+        Pieza(PrimitiveType.Cylinder, "BorneV", t, new Vector3(0.008f, 0.0125f, -0.028f), new Vector3(0.005f, 0.0008f, 0.005f), rojo);
     }
 
     /// <summary>Potenciometro centrado en (x, z). Devuelve la perilla, que gira sobre el eje Y.</summary>
@@ -470,6 +567,9 @@ public static class ConstructorEscenasRA
         Material negro = Mat("PiezaNegra", new Color(0.08f, 0.09f, 0.1f), false);
 
         Pieza(PrimitiveType.Cube, "PotenciometroBase", c, new Vector3(x, 0.012f, z), new Vector3(0.014f, 0.008f, 0.014f), azul);
+        Material plata = Mat("Plata", new Color(0.78f, 0.78f, 0.8f), false);
+        for (int n = -1; n <= 1; n++)
+            Pieza(PrimitiveType.Cube, "PotenciometroPata", c, new Vector3(x + n * 0.005f, 0.0095f, z - 0.0075f), new Vector3(0.001f, 0.003f, 0.001f), plata);
         GameObject perilla = new GameObject("PotenciometroPerilla");
         perilla.transform.SetParent(c, false);
         perilla.transform.localPosition = new Vector3(x, 0.0185f, z);
@@ -483,7 +583,8 @@ public static class ConstructorEscenasRA
         Material material = Mat(nombre, new Color(0.3f, 0.3f, 0.32f), true);
         Material gris = Mat("PiezaGris", new Color(0.6f, 0.6f, 0.62f), false);
         Pieza(PrimitiveType.Cylinder, nombre + "_Base", c, new Vector3(x, 0.0105f, z), new Vector3(0.007f, 0.0025f, 0.007f), gris);
-        return Pieza(PrimitiveType.Sphere, nombre, c, new Vector3(x, 0.016f, z), Vector3.one * 0.008f, material).GetComponent<Renderer>();
+        Pieza(PrimitiveType.Cylinder, nombre + "_Cuerpo", c, new Vector3(x, 0.0135f, z), new Vector3(0.0074f, 0.0025f, 0.0074f), material);
+        return Pieza(PrimitiveType.Sphere, nombre, c, new Vector3(x, 0.016f, z), Vector3.one * 0.0075f, material).GetComponent<Renderer>();
     }
 
     static Transform CrearAncla(string nombre, Transform padre, Vector3 posicion, Material material)
