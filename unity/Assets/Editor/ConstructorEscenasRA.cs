@@ -119,10 +119,10 @@ public static class ConstructorEscenasRA
         Material matNodo = Mat("NodoCian", ColorAcento);
         Material matGnd = Mat("NodoGris", new Color(0.75f, 0.75f, 0.75f));
 
-        Transform anclaN1 = CrearAncla("AnclaN1", anclas, new Vector3(-0.03f, 0f, 0.02f), matNodo);
+        Transform anclaN1 = CrearAncla("AnclaN1", anclas, new Vector3(-0.08f, 0f, 0.02f), matNodo);
         Transform anclaN2 = CrearAncla("AnclaN2", anclas, new Vector3(0f, 0f, 0.02f), matNodo);
-        Transform anclaN3 = CrearAncla("AnclaN3", anclas, new Vector3(0.03f, 0f, 0.02f), matNodo);
-        Transform anclaGnd = CrearAncla("AnclaGND", anclas, new Vector3(0.05f, 0f, -0.02f), matGnd);
+        Transform anclaN3 = CrearAncla("AnclaN3", anclas, new Vector3(0.08f, 0f, 0.02f), matNodo);
+        Transform anclaGnd = CrearAncla("AnclaGND", anclas, new Vector3(0f, 0f, -0.06f), matGnd);
 
         List<EtiquetaVoltaje> etiquetas = new List<EtiquetaVoltaje>();
         etiquetas.Add(CrearEtiqueta(anclaN1, "N1"));
