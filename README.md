@@ -23,10 +23,7 @@ simulador/simulador_esp32.py   (ESP32 simulado + página con el circuito dibujad
 marcador/marcador_ra.jpg       (marcador de Vuforia)
 ```
 
-`unity/` es el proyecto de Unity (Unity 6000.0.85f1; carpetas `Assets`, `Packages` y `ProjectSettings`). Faltan dos cosas que no se pueden publicar y hay que poner a mano después de clonar:
-
-- el paquete de Vuforia: descargar `com.ptc.vuforia.engine-11.4.4.tgz` del portal de desarrolladores de Vuforia y copiarlo en `unity/Packages/` (pesa más de lo que admite GitHub);
-- la licencia de Vuforia: pegarla en `Assets/Resources/VuforiaConfiguration.asset` (campo *App License Key*).
+`unity/` es el proyecto de Unity (Unity 6000.0.85f1; carpetas `Assets`, `Packages` y `ProjectSettings`). Falta una sola cosa, que hay que poner a mano después de clonar: el paquete de Vuforia. Descargar `com.ptc.vuforia.engine-11.4.4.tgz` del portal de desarrolladores de Vuforia y copiarlo en `unity/Packages/` (pesa más de lo que admite GitHub). La licencia de Vuforia ya viene en `Assets/Resources/VuforiaConfiguration.asset`.
 
 ## Arquitectura
 

@@ -8,8 +8,8 @@ El enunciado y la arquitectura están en `README.md`. **No hay hardware físico*
 
 - Proyecto de Unity en el Mac del usuario: carpeta `~/ProyectoRA` (Unity 6000.0.85f1, render Built-in,
   Input System nuevo, TextMeshPro y Vuforia importados, licencia puesta, HTTP permitido). Este repo está
-  clonado dentro, en `~/ProyectoRA/finalra`; `unity/` es una copia del proyecto **sin** la licencia de Vuforia
-  y **sin** el `.tgz` de Vuforia (138 MB).
+  clonado dentro, en `~/ProyectoRA/finalra`; `unity/` es una copia del proyecto **sin** el `.tgz` de Vuforia (138 MB).
+  La licencia de Vuforia sí está en el repo público, por decisión del usuario.
 - Todo el código C# compila sin errores en Unity. La plataforma activa ya es **Android**
   (IL2CPP, ARM64, API mínima 29, orientación vertical).
 - Escenas `Actividad1_AR` y `Actividad2_AR` montadas con el menú `RA > AUTOMATICO` y agregadas a Build Settings.
@@ -28,9 +28,8 @@ El enunciado y la arquitectura están en `README.md`. **No hay hardware físico*
    Solo se verificó en renders (`~/ProyectoRA/Capturas`), no con rastreo.
 3. El simulador que estaba abierto en el Mac era una copia vieja (`~/Downloads/finalra-main 2`): cerrarlo y
    abrir el de este repo, cuya página trae el dibujo alineado con el modelo 3D.
-4. Subir el proyecto al repo: hay un commit local preparado sin las claves de Vuforia; falta el `git push`.
-5. Video de máximo 3 minutos y mensaje al profesor aclarando que el circuito es simulado.
-6. Más adelante: reemplazar piezas por modelos 3D descargados (ESP32 y protoboard primero).
+4. Video de máximo 3 minutos y mensaje al profesor aclarando que el circuito es simulado.
+5. Más adelante: reemplazar piezas por modelos 3D descargados (ESP32 y protoboard primero).
 
 ## Preferencias del usuario
 
