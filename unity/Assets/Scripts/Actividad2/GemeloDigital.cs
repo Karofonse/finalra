@@ -42,12 +42,17 @@ public class GemeloDigital : MonoBehaviour
         cliente.ConexionCambiada -= AlCambiarConexion;
     }
 
-    /// <summary>Voltaje de un nodo en voltios. "GND" siempre vale 0.</summary>
+    /// <summary>Voltaje de un nodo en voltios. "GND" vale 0 y "3V3" vale 3.3 (alimentacion).</summary>
     public bool TryObtenerVoltaje(string idNodo, out float voltios)
     {
         if (string.IsNullOrEmpty(idNodo) || idNodo == "GND")
         {
             voltios = 0f;
+            return true;
+        }
+        if (idNodo == "3V3")
+        {
+            voltios = 3.3f;
             return true;
         }
         return voltajes.TryGetValue(idNodo, out voltios);

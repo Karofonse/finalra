@@ -6,9 +6,10 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Actividad 2: "Guia de Medicion". Indica paso a paso donde ubicar la sonda roja
-/// y la sonda negra del multimetro, y valida el aprendizaje comparando la lectura
-/// que escribe el usuario con el voltaje que reporta el ESP32.
+/// Actividad 2: "Guia de Medicion" con multimetro virtual.
+/// En cada paso unas guias 3D senalan donde va cada sonda. El usuario elige una sonda
+/// (roja o negra) y toca un nodo del circuito; el multimetro virtual muestra la lectura
+/// y el sistema valida si las sondas quedaron donde corresponde.
 /// </summary>
 public class GuiaMedicion : MonoBehaviour
 {
@@ -17,24 +18,34 @@ public class GuiaMedicion : MonoBehaviour
     {
         public string titulo;
         [TextArea(2, 5)] public string instruccion;
-        [Tooltip("Si esta activo, el usuario debe escribir la lectura del multimetro")]
+        [Tooltip("Si esta activo, el usuario debe ubicar las sondas")]
         public bool requiereMedicion;
-        [Tooltip("Nodo donde va la sonda roja: N1, N2, N3")]
+        [Tooltip("Nodo donde va la sonda roja: 3V3, N1, N2, N3, GND")]
         public string nodoRojo;
-        [Tooltip("Nodo donde va la sonda negra: GND, N1, N2, N3")]
+        [Tooltip("Nodo donde va la sonda negra")]
         public string nodoNegro = "GND";
-        public Transform anclaRoja;
-        public Transform anclaNegra;
+    }
+
+    [Serializable]
+    public class PuntoNodo
+    {
+        public string id;
+        public Transform ancla;
+    }
+
+    [Serializable]
+    public class BotonNodo
+    {
+        public string id;
+        public Button boton;
     }
 
     public GemeloDigital gemelo;
     public List<Paso> pasos = new List<Paso>();
-
-    [Header("Tolerancia de validacion")]
-    [Tooltip("Error relativo permitido (0.05 = 5 %)")]
-    public float toleranciaRelativa = 0.05f;
-    [Tooltip("Error minimo permitido en voltios (precision del ADC del ESP32)")]
-    public float toleranciaMinimaV = 0.1f;
+    [Tooltip("Posicion de cada nodo sobre el circuito")]
+    public PuntoNodo[] nodos;
+    [Tooltip("Botones que seleccionan un nodo (los del panel y las etiquetas flotantes)")]
+    public BotonNodo[] botonesNodo;
 
     [Header("Interfaz")]
     public Button botonAbrir;          // boton "Guia de Medicion"
@@ -42,34 +53,55 @@ public class GuiaMedicion : MonoBehaviour
     public TMP_Text textoPaso;
     public TMP_Text textoInstruccion;
     public TMP_Text textoResultado;
-    public TMP_InputField campoLectura;
-    public Button botonVerificar;
+    public TMP_Text textoMultimetro;   // pantalla del multimetro virtual
+    public GameObject zonaMedicion;    // contiene sondas, nodos y multimetro
+    public Button botonSondaRoja;
+    public Button botonSondaNegra;
     public Button botonAnterior;
     public Button botonSiguiente;
     public Button botonCerrar;
 
-    [Header("Sondas virtuales")]
+    [Header("Objetos 3D")]
+    [Tooltip("Sondas que coloca el usuario")]
     public Transform sondaRoja;
     public Transform sondaNegra;
+    [Tooltip("Guias que senalan donde debe ir cada sonda")]
+    public Transform guiaRoja;
+    public Transform guiaNegra;
 
     static readonly Color Verde = new Color(0.3f, 1f, 0.4f);
     static readonly Color Rojo = new Color(1f, 0.45f, 0.35f);
     static readonly Color Amarillo = new Color(1f, 0.85f, 0.2f);
+    static readonly Color RojaActiva = new Color(0.9f, 0.15f, 0.15f);
+    static readonly Color RojaInactiva = new Color(0.4f, 0.12f, 0.12f);
+    static readonly Color NegraActiva = new Color(0.38f, 0.38f, 0.42f);
+    static readonly Color NegraInactiva = new Color(0.14f, 0.14f, 0.16f);
 
     int indice;
     bool validado;
     bool terminado;
-    int intentosPaso;
-    int aciertosPrimerIntento;
-    int totalMediciones;
+    bool sondaActivaRoja = true;
+    string puestoRojo;
+    string puestoNegro;
+    string ultimaConfiguracion;
+    int fallosPaso;
+    bool[] aciertoPrimerIntento;
 
     void Start()
     {
         botonAbrir.onClick.AddListener(Abrir);
         botonCerrar.onClick.AddListener(Cerrar);
-        botonVerificar.onClick.AddListener(Verificar);
         botonAnterior.onClick.AddListener(Anterior);
         botonSiguiente.onClick.AddListener(Siguiente);
+        botonSondaRoja.onClick.AddListener(() => ElegirSonda(true));
+        botonSondaNegra.onClick.AddListener(() => ElegirSonda(false));
+
+        foreach (BotonNodo b in botonesNodo)
+        {
+            if (b == null || b.boton == null) continue;
+            string id = b.id;
+            b.boton.onClick.AddListener(() => SeleccionarNodo(id));
+        }
         Cerrar();
     }
 
@@ -78,10 +110,7 @@ public class GuiaMedicion : MonoBehaviour
         if (pasos.Count == 0) return;
         indice = 0;
         terminado = false;
-        aciertosPrimerIntento = 0;
-        totalMediciones = 0;
-        foreach (Paso p in pasos) if (p.requiereMedicion) totalMediciones++;
-
+        aciertoPrimerIntento = new bool[pasos.Count];
         panel.SetActive(true);
         botonAbrir.gameObject.SetActive(false);
         MostrarPaso();
@@ -91,74 +120,116 @@ public class GuiaMedicion : MonoBehaviour
     {
         panel.SetActive(false);
         botonAbrir.gameObject.SetActive(true);
+        OcultarObjetos();
+    }
+
+    void OcultarObjetos()
+    {
         Colocar(sondaRoja, null);
         Colocar(sondaNegra, null);
+        Colocar(guiaRoja, null);
+        Colocar(guiaNegra, null);
     }
 
     void MostrarPaso()
     {
         Paso p = pasos[indice];
-        intentosPaso = 0;
         validado = !p.requiereMedicion;
+        fallosPaso = 0;
+        puestoRojo = null;
+        puestoNegro = null;
+        ultimaConfiguracion = null;
+        sondaActivaRoja = true;
 
         textoPaso.text = "Paso " + (indice + 1) + " de " + pasos.Count + ": " + p.titulo;
         textoInstruccion.text = p.instruccion;
-        textoResultado.text = "";
-        campoLectura.text = "";
+        textoResultado.text = p.requiereMedicion ? "Elige una sonda y toca el nodo donde la quieres poner." : "";
+        textoResultado.color = Color.white;
 
-        campoLectura.gameObject.SetActive(p.requiereMedicion);
-        botonVerificar.gameObject.SetActive(p.requiereMedicion);
+        zonaMedicion.SetActive(p.requiereMedicion);
         botonAnterior.gameObject.SetActive(true);
         botonAnterior.interactable = indice > 0;
         botonSiguiente.interactable = validado;
         PonerTexto(botonSiguiente, indice == pasos.Count - 1 ? "Finalizar" : "Siguiente");
 
-        Colocar(sondaRoja, p.anclaRoja);
-        Colocar(sondaNegra, p.anclaNegra);
+        Colocar(sondaRoja, null);
+        Colocar(sondaNegra, null);
+        Colocar(guiaRoja, p.requiereMedicion ? Ancla(p.nodoRojo) : null);
+        Colocar(guiaNegra, p.requiereMedicion ? Ancla(p.nodoNegro) : null);
+        ActualizarBotonesSonda();
     }
 
-    void Verificar()
+    void ElegirSonda(bool roja)
+    {
+        sondaActivaRoja = roja;
+        ActualizarBotonesSonda();
+    }
+
+    /// <summary>Pone la sonda activa en el nodo indicado.</summary>
+    public void SeleccionarNodo(string id)
+    {
+        if (!panel.activeSelf || terminado) return;
+        if (!pasos[indice].requiereMedicion) return;
+
+        if (sondaActivaRoja) puestoRojo = id;
+        else puestoNegro = id;
+
+        // Si la otra sonda aun no esta puesta, pasa a ser la activa
+        if (sondaActivaRoja && puestoNegro == null) sondaActivaRoja = false;
+        else if (!sondaActivaRoja && puestoRojo == null) sondaActivaRoja = true;
+
+        Colocar(sondaRoja, Ancla(puestoRojo));
+        Colocar(sondaNegra, Ancla(puestoNegro));
+        ActualizarBotonesSonda();
+        Evaluar();
+    }
+
+    void Evaluar()
     {
         Paso p = pasos[indice];
 
-        float lectura;
-        string entrada = campoLectura.text.Trim().Replace(',', '.');
-        if (!float.TryParse(entrada, NumberStyles.Float, CultureInfo.InvariantCulture, out lectura))
+        if (puestoRojo == null || puestoNegro == null)
         {
-            Mensaje("Escribe la lectura del multímetro en voltios, por ejemplo 2.20", Amarillo);
+            Mensaje("Ahora ubica la otra sonda.", Amarillo);
             return;
         }
 
-        float vRojo, vNegro;
-        if (!gemelo.Conectado || !gemelo.TryObtenerVoltaje(p.nodoRojo, out vRojo) || !gemelo.TryObtenerVoltaje(p.nodoNegro, out vNegro))
-        {
-            Mensaje("Sin datos del ESP32. Revisa la conexión antes de verificar.", Amarillo);
-            return;
-        }
+        string configuracion = puestoRojo + ">" + puestoNegro;
+        if (configuracion == ultimaConfiguracion) return;
+        ultimaConfiguracion = configuracion;
 
-        float esperado = vRojo - vNegro;
-        float tolerancia = Mathf.Max(toleranciaMinimaV, Mathf.Abs(esperado) * toleranciaRelativa);
-        intentosPaso++;
-
-        if (Mathf.Abs(lectura - esperado) <= tolerancia)
+        if (puestoRojo == p.nodoRojo && puestoNegro == p.nodoNegro)
         {
-            if (!validado && intentosPaso == 1) aciertosPrimerIntento++;
+            if (!validado && fallosPaso == 0) aciertoPrimerIntento[indice] = true;
             validado = true;
             botonSiguiente.interactable = true;
-            Mensaje("Correcto. Tu lectura (" + Formato(lectura) + " V) coincide con el sistema (" + Formato(esperado) + " V).", Verde);
+            Mensaje("Correcto: las sondas están bien ubicadas. Observa la lectura del multímetro.", Verde);
+            return;
         }
-        else if (Mathf.Abs(esperado) > tolerancia && Mathf.Abs(lectura + esperado) <= tolerancia)
+
+        if (!validado) fallosPaso++;
+
+        if (puestoRojo == puestoNegro)
+            Mensaje("Las dos sondas están en el mismo nodo: la lectura es 0 V.", Rojo);
+        else if (puestoRojo == p.nodoNegro && puestoNegro == p.nodoRojo)
+            Mensaje("Sondas invertidas: por eso la lectura es negativa. Intercambia la roja y la negra.", Rojo);
+        else
+            Mensaje("Esa no es la medición pedida. Ubica cada sonda donde lo indica la guía de su color.", Rojo);
+    }
+
+    void Update()
+    {
+        if (!panel.activeSelf || terminado || !zonaMedicion.activeSelf) return;
+
+        float vRojo, vNegro;
+        if (puestoRojo != null && puestoNegro != null && gemelo.Conectado &&
+            gemelo.TryObtenerVoltaje(puestoRojo, out vRojo) && gemelo.TryObtenerVoltaje(puestoNegro, out vNegro))
         {
-            Mensaje("El valor es correcto pero con signo contrario: tienes las sondas invertidas. Intercambia la roja y la negra.", Rojo);
-        }
-        else if (Mathf.Abs(lectura) < 0.02f)
-        {
-            Mensaje("Lectura cercana a 0 V. Verifica que las puntas hagan buen contacto y que el selector esté en voltaje DC.", Rojo);
+            textoMultimetro.text = (vRojo - vNegro).ToString("0.00", CultureInfo.InvariantCulture) + " V";
         }
         else
         {
-            Mensaje("No coincide: mediste " + Formato(lectura) + " V y el sistema reporta " + Formato(esperado) +
-                    " V. Revisa la posición de las sondas según las guías 3D.", Rojo);
+            textoMultimetro.text = "-.-- V";
         }
     }
 
@@ -192,17 +263,39 @@ public class GuiaMedicion : MonoBehaviour
     void MostrarResumen()
     {
         terminado = true;
+        int total = 0, aciertos = 0;
+        for (int i = 0; i < pasos.Count; i++)
+        {
+            if (!pasos[i].requiereMedicion) continue;
+            total++;
+            if (aciertoPrimerIntento[i]) aciertos++;
+        }
+
         textoPaso.text = "Guía completada";
-        textoInstruccion.text = "Realizaste las " + totalMediciones + " mediciones correctamente.\n" +
-                                "Aciertos al primer intento: " + aciertosPrimerIntento + " de " + totalMediciones + ".";
+        textoInstruccion.text = "Realizaste las " + total + " mediciones correctamente.\n" +
+                                "Aciertos al primer intento: " + aciertos + " de " + total + ".";
         textoResultado.text = "";
-        campoLectura.gameObject.SetActive(false);
-        botonVerificar.gameObject.SetActive(false);
+        zonaMedicion.SetActive(false);
         botonAnterior.gameObject.SetActive(false);
         botonSiguiente.interactable = true;
         PonerTexto(botonSiguiente, "Cerrar");
-        Colocar(sondaRoja, null);
-        Colocar(sondaNegra, null);
+        OcultarObjetos();
+    }
+
+    void ActualizarBotonesSonda()
+    {
+        PonerTexto(botonSondaRoja, (sondaActivaRoja ? "> " : "") + "ROJA: " + (puestoRojo ?? "sin ubicar"));
+        PonerTexto(botonSondaNegra, (!sondaActivaRoja ? "> " : "") + "NEGRA: " + (puestoNegro ?? "sin ubicar"));
+        Pintar(botonSondaRoja, sondaActivaRoja ? RojaActiva : RojaInactiva);
+        Pintar(botonSondaNegra, !sondaActivaRoja ? NegraActiva : NegraInactiva);
+    }
+
+    Transform Ancla(string id)
+    {
+        if (string.IsNullOrEmpty(id) || nodos == null) return null;
+        foreach (PuntoNodo n in nodos)
+            if (n != null && n.id == id) return n.ancla;
+        return null;
     }
 
     void Mensaje(string texto, Color color)
@@ -211,9 +304,10 @@ public class GuiaMedicion : MonoBehaviour
         textoResultado.color = color;
     }
 
-    static string Formato(float v)
+    static void Pintar(Button boton, Color color)
     {
-        return v.ToString("0.00", CultureInfo.InvariantCulture);
+        Image img = boton.GetComponent<Image>();
+        if (img != null) img.color = color;
     }
 
     static void PonerTexto(Button boton, string texto)
@@ -222,10 +316,10 @@ public class GuiaMedicion : MonoBehaviour
         if (t != null) t.text = texto;
     }
 
-    static void Colocar(Transform sonda, Transform ancla)
+    static void Colocar(Transform objeto, Transform ancla)
     {
-        if (sonda == null) return;
-        sonda.gameObject.SetActive(ancla != null);
-        if (ancla != null) sonda.position = ancla.position;
+        if (objeto == null) return;
+        objeto.gameObject.SetActive(ancla != null);
+        if (ancla != null) objeto.position = ancla.position;
     }
 }

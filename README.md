@@ -14,9 +14,11 @@ firmware/
   actividad2_gemelo_digital/actividad2_gemelo_digital.ino
 unity/Assets/
   Scripts/Comun/        Esp32Http.cs  ConexionUI.cs  Billboard.cs
-  Scripts/Actividad1/   PanelIoT.cs
-  Scripts/Actividad2/   GemeloDigital.cs  EtiquetaVoltaje.cs  GuiaMedicion.cs  FlechaAnimada.cs
-  Editor/               ConstructorEscenasRA.cs   (menú "RA" que arma la interfaz)
+  Scripts/Actividad1/   PanelIoT.cs  Circuito3DActividad1.cs
+  Scripts/Actividad2/   GemeloDigital.cs  EtiquetaVoltaje.cs  GuiaMedicion.cs  FlechaAnimada.cs  Circuito3DActividad2.cs
+  Editor/               ConstructorEscenasRA.cs   (menú "RA" que arma la interfaz y el modelo 3D)
+simulador/simulador_esp32.py   (ESP32 simulado + página con el circuito dibujado)
+marcador/marcador_ra.jpg       (marcador de Vuforia)
 ```
 
 `unity/Assets` no es un proyecto de Unity completo: se copia dentro de la carpeta `Assets` de tu proyecto.
@@ -100,7 +102,7 @@ Notas importantes:
 2. Agregar `GameObject > Vuforia Engine > Image Target` y asignarle el marcador (base de datos de Vuforia o imagen propia). Poner el ancho real del marcador impreso en metros.
 3. Menú **RA > Crear contenido Actividad 1** (o **Actividad 2**). Se crea el objeto `ContenidoActividadX` con toda la interfaz ya conectada.
 4. Arrastrar `ContenidoActividadX` **dentro del Image Target** (como hijo) y dejar su posición en (0, 0, 0).
-5. Solo Actividad 2: en `Anclas (mover sobre el circuito)` mover `AnclaN1`, `AnclaN2`, `AnclaN3` y `AnclaGND` hasta que queden sobre los puntos reales de la protoboard respecto al marcador. Las etiquetas y las sondas virtuales siguen a las anclas.
+5. Con un circuito físico real habría que mover las anclas de `Anclas` hasta los puntos reales de la protoboard. Con el circuito virtual ya coinciden con el modelo 3D y con el dibujo de la página.
 6. Guardar la escena, agregarla a Build Settings y compilar al teléfono.
 
 Si los botones del panel no responden al toque, revisar que exista un `EventSystem` en la escena y que la AR Camera tenga la etiqueta `MainCamera`.
@@ -121,12 +123,12 @@ Si los botones del panel no responden al toque, revisar que exista un `EventSyst
 1. Conectar igual que en la Actividad 1.
 2. Apuntar al marcador junto a la protoboard: sobre cada nodo aparece una etiqueta con el voltaje medido por el ESP32.
 3. Tocar **Guía de Medición**.
-4. Seguir cada paso: las sondas virtuales roja y negra muestran dónde poner las puntas del multímetro.
-5. Escribir la lectura del multímetro y tocar **Verificar**. La app la compara con el valor del ESP32:
-   - coincide → se habilita **Siguiente**;
-   - mismo valor con signo contrario → avisa que las sondas están invertidas;
-   - cerca de 0 V → pide revisar contacto y selector;
-   - otro valor → muestra la diferencia y pide revisar la posición.
+4. En cada paso, las guías animadas (roja y negra) señalan el nodo donde va cada sonda.
+5. Tocar **ROJA** o **NEGRA** y luego el nodo (botón del panel o etiqueta flotante). El multímetro virtual muestra la lectura:
+   - sondas en los nodos pedidos → mensaje verde y se habilita **Siguiente**;
+   - sondas intercambiadas → lectura negativa y aviso de sondas invertidas;
+   - las dos en el mismo nodo → 0 V;
+   - otro nodo → pide seguir las guías.
 6. Al final se muestra el resumen con los aciertos al primer intento.
 
 ## API del ESP32
@@ -137,16 +139,28 @@ Si los botones del panel no responden al toque, revisar que exista un `EventSyst
 | `GET /led?id=1&state=toggle` | cambia el LED (`state` = `0`, `1` o `toggle`) y devuelve el estado completo |
 | `GET /voltages` | `{"nodes":[{"id":"N1","mv":2200},{"id":"N2","mv":1100},{"id":"N3","mv":1650}],"uptime":12345}` |
 
-## Simulador (probar sin hardware)
+## Circuito virtual (sin hardware físico)
 
-`simulador/simulador_esp32.py` responde igual que el ESP32 (`/state`, `/led`, `/voltages`) con valores simulados. Solo necesita Python 3.
+Esta entrega no usa un montaje físico: el circuito está **modelado y simulado**. El firmware de `firmware/` es el que correría en un ESP32 real y expone la misma API HTTP que el simulador, así que la app funciona igual con hardware real cambiando solo la IP.
+
+Tres piezas hacen de circuito:
+
+1. **Simulador** (`simulador/simulador_esp32.py`): responde `/state`, `/led` y `/voltages` como el ESP32.
+2. **Circuito dibujado** (página del simulador): muestra el marcador de Vuforia y, debajo, la protoboard a escala con sus componentes. Ahí se gira el potenciómetro, se presiona el pulsador y se ven encender los LEDs.
+3. **Modelo 3D en la app de AR**: al apuntar al marcador aparece la protoboard en 3D (ESP32, resistencias, potenciómetro, pulsador, LEDs) justo encima del dibujo, con las etiquetas de voltaje sobre cada nodo.
+
+El dibujo y el modelo 3D usan las mismas coordenadas respecto al marcador (marcador de 14 × 10 cm; protoboard de 22 × 7 cm centrada 10,5 cm por debajo del centro del marcador), por eso coinciden sin calibrar aunque la pantalla muestre el marcador a otro tamaño.
+
+### Uso
 
 ```bash
-python simulador/simulador_esp32.py
+python3 simulador/simulador_esp32.py
 ```
 
-1. Abrir `http://localhost:8080/` en el navegador: es la "protoboard" virtual (potenciómetros, pulsador y LEDs).
-2. En Unity pulsar Play, escribir `127.0.0.1:8080` en el campo de IP y tocar **Conectar**.
-3. Para probar desde el teléfono, usar la IP del computador que imprime el simulador (misma red Wi-Fi; puede que el firewall pida permiso).
+1. Abrir `http://localhost:8080/` en el computador y elegir la pestaña de la actividad.
+2. En la app (o en Unity con Play), escribir la IP: `127.0.0.1:8080` en el mismo computador, o `IP_DEL_COMPUTADOR:8080` desde el teléfono en la misma red Wi-Fi.
+3. Apuntar la cámara al marcador que se ve en la página.
 
-El simulador es solo para desarrollo: la entrega y el video requieren el circuito físico.
+### Multímetro virtual (Actividad 2)
+
+En la Guía de Medición no se escribe la lectura: el usuario elige una sonda (**ROJA** o **NEGRA**) y toca el nodo donde la pone (en los botones del panel o en la etiqueta flotante del nodo). Unas guías animadas del color de cada sonda señalan el nodo correcto. El multímetro virtual muestra `V(roja) − V(negra)` en tiempo real con los datos del ESP32 y la app valida la posición: avisa si las sondas están invertidas (lectura negativa), en el mismo nodo (0 V) o en un nodo equivocado.
