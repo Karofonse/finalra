@@ -17,8 +17,12 @@ public class Circuito3DActividad1 : MonoBehaviour
     }
 
     public Esp32Http cliente;
-    public Renderer led1;
-    public Renderer led2;
+    [Tooltip("Piezas de cada LED que cambian de color (cupula y cuerpo)")]
+    public Renderer[] led1;
+    public Renderer[] led2;
+    [Tooltip("Luz puntual que ilumina la protoboard cuando el LED esta encendido")]
+    public Light luz1;
+    public Light luz2;
     public Transform perilla;
     public Transform tapaPulsador;
 
@@ -34,8 +38,8 @@ public class Circuito3DActividad1 : MonoBehaviour
     {
         if (tapaPulsador != null) posicionTapa = tapaPulsador.localPosition;
         cliente.EstadoRecibido += AlRecibir;
-        Pintar(led1, ledApagado);
-        Pintar(led2, ledApagado);
+        Pintar(led1, luz1, led1Encendido, false);
+        Pintar(led2, luz2, led2Encendido, false);
     }
 
     void OnDestroy()
@@ -50,8 +54,8 @@ public class Circuito3DActividad1 : MonoBehaviour
         catch (Exception) { return; }
         if (e == null) return;
 
-        Pintar(led1, e.led1 ? led1Encendido : ledApagado);
-        Pintar(led2, e.led2 ? led2Encendido : ledApagado);
+        Pintar(led1, luz1, led1Encendido, e.led1);
+        Pintar(led2, luz2, led2Encendido, e.led2);
 
         if (perilla != null)
         {
@@ -62,8 +66,21 @@ public class Circuito3DActividad1 : MonoBehaviour
             tapaPulsador.localPosition = posicionTapa - (e.button ? Vector3.up * recorridoPulsador : Vector3.zero);
     }
 
-    static void Pintar(Renderer r, Color color)
+    void Pintar(Renderer[] piezas, Light luz, Color encendido, bool activo)
     {
-        if (r != null) r.material.color = color;
+        if (luz != null)
+        {
+            luz.color = encendido;
+            luz.enabled = activo;
+        }
+        if (piezas == null) return;
+        foreach (Renderer r in piezas)
+        {
+            if (r == null) continue;
+            Material m = r.material;
+            m.color = activo ? encendido : ledApagado;
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", activo ? encendido * 2.5f : Color.black);
+        }
     }
 }

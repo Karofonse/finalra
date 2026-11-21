@@ -53,7 +53,8 @@ public class GuiaMedicion : MonoBehaviour
     public TMP_Text textoPaso;
     public TMP_Text textoInstruccion;
     public TMP_Text textoResultado;
-    public TMP_Text textoMultimetro;   // pantalla del multimetro virtual
+    public TMP_Text textoMultimetro;   // pantalla del multimetro virtual (panel)
+    public TMP_Text textoMultimetro3D; // pantalla del multimetro 3D (opcional)
     public GameObject zonaMedicion;    // contiene sondas, nodos y multimetro
     public Button botonSondaRoja;
     public Button botonSondaNegra;
@@ -219,18 +220,17 @@ public class GuiaMedicion : MonoBehaviour
 
     void Update()
     {
-        if (!panel.activeSelf || terminado || !zonaMedicion.activeSelf) return;
-
+        string lectura = "-.--";
         float vRojo, vNegro;
-        if (puestoRojo != null && puestoNegro != null && gemelo.Conectado &&
+        bool midiendo = panel.activeSelf && !terminado && zonaMedicion.activeSelf;
+        if (midiendo && puestoRojo != null && puestoNegro != null && gemelo.Conectado &&
             gemelo.TryObtenerVoltaje(puestoRojo, out vRojo) && gemelo.TryObtenerVoltaje(puestoNegro, out vNegro))
         {
-            textoMultimetro.text = (vRojo - vNegro).ToString("0.00", CultureInfo.InvariantCulture) + " V";
+            lectura = (vRojo - vNegro).ToString("0.00", CultureInfo.InvariantCulture);
         }
-        else
-        {
-            textoMultimetro.text = "-.-- V";
-        }
+
+        if (midiendo) textoMultimetro.text = lectura + " V";
+        if (textoMultimetro3D != null) textoMultimetro3D.text = lectura;
     }
 
     void Anterior()
