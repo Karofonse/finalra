@@ -18,8 +18,12 @@ El enunciado y la arquitectura están en `README.md`. **No hay hardware físico*
   - Actividad 2: conexión, etiquetas N1/N2/N3, multímetro (panel y 3D), sondas invertidas, mismo nodo,
     medición correcta, resumen de aciertos y toque sobre las etiquetas flotantes.
   - Actividad 1: voltaje y porcentaje del potenciómetro, pulsador, LEDs desde la app, perilla y luces del modelo 3D.
+- Panel web del simulador rehecho (`simulador/panel.html`): circuito 3D interactivo con three.js, indicadores,
+  historial y registro de comunicación. Probado en el navegador con las dos actividades.
+- El panel de la Actividad 1 se redujo (16 × 10,5 cm) y se bajó el brillo de los materiales tras la primera prueba
+  en el teléfono (la app ya rastrea y conecta en el teléfono del usuario).
 - APK generado: `~/ProyectoRA/Builds/ProyectoRA.apk` (menú `RA > Compilar APK para Android`).
-  **No se ha instalado en ningún teléfono.**
+  El primer APK se probó en el teléfono; el segundo (panel reducido) falta por confirmar.
 
 ## Pendiente
 

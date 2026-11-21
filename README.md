@@ -19,7 +19,8 @@ unity/Assets/
   Scripts/Actividad2/   GemeloDigital.cs  EtiquetaVoltaje.cs  GuiaMedicion.cs  FlechaAnimada.cs  Circuito3DActividad2.cs  CableSonda.cs
   Editor/               ConstructorEscenasRA.cs   (menú "RA" que arma la interfaz y el modelo 3D)
                         CompilarAndroidRA.cs      (menú "RA > Compilar APK para Android")
-simulador/simulador_esp32.py   (ESP32 simulado + página con el circuito dibujado)
+simulador/simulador_esp32.py   (ESP32 simulado)
+simulador/panel.html           (panel web: circuito 3D interactivo, lecturas y marcador)
 marcador/marcador_ra.jpg       (marcador de Vuforia)
 ```
 
@@ -156,7 +157,7 @@ Esta entrega no usa un montaje físico: el circuito está **modelado y simulado*
 Tres piezas hacen de circuito:
 
 1. **Simulador** (`simulador/simulador_esp32.py`): responde `/state`, `/led` y `/voltages` como el ESP32.
-2. **Circuito dibujado** (página del simulador): muestra el marcador de Vuforia y, debajo, la protoboard a escala con sus componentes. Ahí se gira el potenciómetro, se presiona el pulsador y se ven encender los LEDs.
+2. **Panel web** (`simulador/panel.html`, en `http://localhost:8080/`): el circuito en 3D interactivo, las lecturas en vivo y el marcador de Vuforia con la protoboard dibujada a escala.
 3. **Modelo 3D en la app de AR**: al apuntar al marcador aparece la protoboard en 3D (ESP32, resistencias, potenciómetro, pulsador, LEDs) justo encima del dibujo, con las etiquetas de voltaje sobre cada nodo.
 
 El dibujo y el modelo 3D usan las mismas coordenadas respecto al marcador (marcador de 14 × 10 cm; protoboard de 22 × 7 cm centrada 10,5 cm por debajo del centro del marcador), por eso coinciden sin calibrar aunque la pantalla muestre el marcador a otro tamaño.
@@ -167,9 +168,17 @@ El dibujo y el modelo 3D usan las mismas coordenadas respecto al marcador (marca
 python3 simulador/simulador_esp32.py
 ```
 
-1. Abrir `http://localhost:8080/` en el computador y elegir la pestaña de la actividad.
-2. En la app (o en Unity con Play), escribir la IP: `127.0.0.1:8080` en el mismo computador, o `IP_DEL_COMPUTADOR:8080` desde el teléfono en la misma red Wi-Fi.
-3. Apuntar la cámara al marcador que se ve en la página.
+1. Abrir `http://localhost:8080/` en el computador. La pestaña de la actividad cambia sola cuando la app abre la otra actividad.
+2. En la app (o en Unity con Play), escribir la IP que muestra el panel arriba a la derecha (`IP_DEL_COMPUTADOR:8080`; en el mismo computador, `127.0.0.1:8080`).
+3. Apuntar la cámara al marcador del panel. El botón **Pantalla completa** lo agranda.
+
+### Panel web
+
+- **Circuito en 3D**: se gira arrastrando el fondo y se acerca con la rueda. La perilla del potenciómetro se mueve arrastrándola y el pulsador se hunde mientras se mantiene presionado; los LEDs se encienden cuando la app los activa.
+- **Indicadores**: potenciómetro, pulsador y LEDs (Actividad 1) o voltajes de N1, N2, N3 y caídas en cada resistencia (Actividad 2), con el pin del ESP32 de cada uno.
+- **Historial** de los últimos 60 segundos y **comunicación con la app**: si la app está conectada, cuántas consultas hace por segundo, la respuesta JSON en vivo y el registro de eventos.
+
+El modelo 3D usa three.js, incluido en `simulador/vendor/` para que funcione sin internet.
 
 ### Multímetro virtual (Actividad 2)
 
