@@ -24,6 +24,82 @@ public static class ConstructorEscenasRA
     static readonly Vector2 Arriba = new Vector2(0.5f, 1f);
     static readonly Vector2 Abajo = new Vector2(0.5f, 0f);
 
+    static GameObject ultimaRaiz;   // ultimo contenido creado, para los montajes automaticos
+
+    // =====================================================================
+    //  MONTAJE AUTOMATICO (un solo clic)
+    // =====================================================================
+    [MenuItem("RA/AUTOMATICO - Montar Actividad 2 en esta escena AR", false, 0)]
+    static void MontarActividad2() { Montar(2); }
+
+    [MenuItem("RA/AUTOMATICO - Montar Actividad 1 en esta escena AR", false, 1)]
+    static void MontarActividad1() { Montar(1); }
+
+    [MenuItem("RA/AUTOMATICO - Crear escena Actividad1_AR copiando esta", false, 2)]
+    static void CrearEscenaActividad1()
+    {
+        Scene actual = SceneManager.GetActiveScene();
+        if (string.IsNullOrEmpty(actual.path) || GameObject.Find("ImageTarget") == null)
+        {
+            EditorUtility.DisplayDialog("RA", "Abre primero una escena AR guardada que tenga ARCamera e ImageTarget (por ejemplo Actividad2_AR).", "OK");
+            return;
+        }
+        EditorSceneManager.SaveScene(actual);
+        string carpeta = actual.path.Substring(0, actual.path.LastIndexOf('/'));
+        string destino = carpeta + "/Actividad1_AR.unity";
+        if (actual.path == destino)
+        {
+            Montar(1);
+            return;
+        }
+        AssetDatabase.DeleteAsset(destino);
+        if (!AssetDatabase.CopyAsset(actual.path, destino))
+        {
+            EditorUtility.DisplayDialog("RA", "No se pudo copiar la escena a " + destino, "OK");
+            return;
+        }
+        EditorSceneManager.OpenScene(destino);
+        Montar(1);
+    }
+
+    /// <summary>Borra el contenido viejo, crea el nuevo dentro del ImageTarget y guarda la escena.</summary>
+    static void Montar(int actividad)
+    {
+        GameObject marcador = GameObject.Find("ImageTarget");
+        if (marcador == null)
+        {
+            EditorUtility.DisplayDialog("RA", "Esta escena no tiene un objeto llamado ImageTarget. Abre la escena AR (por ejemplo Actividad2_AR) y vuelve a intentarlo.", "OK");
+            return;
+        }
+
+        string[] viejos = { "ContenidoActividad1", "ContenidoActividad2" };
+        foreach (string nombre in viejos)
+        {
+            GameObject viejo;
+            int seguro = 0;
+            while ((viejo = GameObject.Find(nombre)) != null && seguro++ < 20) Object.DestroyImmediate(viejo);
+        }
+
+        ultimaRaiz = null;
+        if (actividad == 1) CrearActividad1();
+        else CrearActividad2();
+        if (ultimaRaiz == null) return;
+
+        Transform t = ultimaRaiz.transform;
+        t.SetParent(marcador.transform, false);
+        t.localPosition = Vector3.zero;
+        t.localRotation = Quaternion.identity;
+        t.localScale = Vector3.one;
+
+        Scene escena = SceneManager.GetActiveScene();
+        EditorSceneManager.MarkSceneDirty(escena);
+        if (!string.IsNullOrEmpty(escena.path)) EditorSceneManager.SaveScene(escena);
+
+        Selection.activeGameObject = ultimaRaiz;
+        if (SceneView.lastActiveSceneView != null) SceneView.lastActiveSceneView.FrameSelected();
+        Debug.Log("[RA] Actividad " + actividad + " montada dentro de ImageTarget y escena guardada.");
+    }
+
     static Sprite SpriteUI { get { return AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd"); } }
     static Sprite SpriteCirculo { get { return AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd"); } }
     static Sprite SpriteCampo { get { return AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/InputFieldBackground.psd"); } }
@@ -31,7 +107,7 @@ public static class ConstructorEscenasRA
     // =====================================================================
     //  ACTIVIDAD 1
     // =====================================================================
-    [MenuItem("RA/Crear contenido Actividad 1 (Panel IoT)")]
+    [MenuItem("RA/Manual - Crear contenido Actividad 1 (Panel IoT)", false, 20)]
     static void CrearActividad1()
     {
         GameObject raiz = new GameObject("ContenidoActividad1");
@@ -168,7 +244,7 @@ public static class ConstructorEscenasRA
     // =====================================================================
     //  ACTIVIDAD 2
     // =====================================================================
-    [MenuItem("RA/Crear contenido Actividad 2 (Gemelo digital y guia)")]
+    [MenuItem("RA/Manual - Crear contenido Actividad 2 (Gemelo digital y guia)", false, 21)]
     static void CrearActividad2()
     {
         GameObject raiz = new GameObject("ContenidoActividad2");
@@ -959,6 +1035,7 @@ public static class ConstructorEscenasRA
         if (Object.FindObjectOfType<EventSystem>() == null)
             EditorApplication.ExecuteMenuItem("GameObject/UI/Event System");
 
+        ultimaRaiz = raiz;
         Selection.activeGameObject = raiz;
         EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         Debug.Log("[RA] Se creó '" + raiz.name + "'. Arrástralo dentro del ImageTarget de Vuforia.");
