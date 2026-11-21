@@ -13,15 +13,20 @@ firmware/
   actividad1_panel_iot/actividad1_panel_iot.ino
   actividad2_gemelo_digital/actividad2_gemelo_digital.ino
 unity/Assets/
-  Scripts/Comun/        Esp32Http.cs  ConexionUI.cs  Billboard.cs
+  Scenes/               Actividad1_AR.unity  Actividad2_AR.unity  (escenas AR ya montadas)
+  Scripts/Comun/        Esp32Http.cs  ConexionUI.cs  Billboard.cs  CambiarEscena.cs
   Scripts/Actividad1/   PanelIoT.cs  Circuito3DActividad1.cs
-  Scripts/Actividad2/   GemeloDigital.cs  EtiquetaVoltaje.cs  GuiaMedicion.cs  FlechaAnimada.cs  Circuito3DActividad2.cs
+  Scripts/Actividad2/   GemeloDigital.cs  EtiquetaVoltaje.cs  GuiaMedicion.cs  FlechaAnimada.cs  Circuito3DActividad2.cs  CableSonda.cs
   Editor/               ConstructorEscenasRA.cs   (menú "RA" que arma la interfaz y el modelo 3D)
+                        CompilarAndroidRA.cs      (menú "RA > Compilar APK para Android")
 simulador/simulador_esp32.py   (ESP32 simulado + página con el circuito dibujado)
 marcador/marcador_ra.jpg       (marcador de Vuforia)
 ```
 
-`unity/Assets` no es un proyecto de Unity completo: se copia dentro de la carpeta `Assets` de tu proyecto.
+`unity/` es el proyecto de Unity (Unity 6000.0.85f1; carpetas `Assets`, `Packages` y `ProjectSettings`). Faltan dos cosas que no se pueden publicar y hay que poner a mano después de clonar:
+
+- el paquete de Vuforia: descargar `com.ptc.vuforia.engine-11.4.4.tgz` del portal de desarrolladores de Vuforia y copiarlo en `unity/Packages/` (pesa más de lo que admite GitHub);
+- la licencia de Vuforia: pegarla en `Assets/Resources/VuforiaConfiguration.asset` (campo *App License Key*).
 
 ## Arquitectura
 
@@ -104,6 +109,14 @@ Notas importantes:
 4. Arrastrar `ContenidoActividadX` **dentro del Image Target** (como hijo) y dejar su posición en (0, 0, 0).
 5. Con un circuito físico real habría que mover las anclas de `Anclas` hasta los puntos reales de la protoboard. Con el circuito virtual ya coinciden con el modelo 3D y con el dibujo de la página.
 6. Guardar la escena, agregarla a Build Settings y compilar al teléfono.
+
+Atajo: con la escena AR abierta (ARCamera + ImageTarget), **RA > AUTOMATICO - Montar Actividad 2 en esta escena AR** hace los pasos 3 y 4 de una vez, y **RA > AUTOMATICO - Crear escena Actividad1_AR copiando esta** crea la escena de la Actividad 1.
+
+Con las dos escenas (`Actividad1_AR` y `Actividad2_AR`) en Build Settings, bajo la barra de conexión aparece el botón **Ir a Actividad 1 / Ir a Actividad 2** para pasar de una a otra dentro de la misma app.
+
+### Compilar para Android
+
+Menú **RA > Compilar APK para Android**: cambia la plataforma a Android, fija orientación vertical, API mínima 29 (la que exige Vuforia 11) y HTTP permitido, y genera `Builds/ProyectoRA.apk` (requiere el módulo *Android Build Support* con SDK, NDK y OpenJDK). El resultado queda también en `ra_build_resultado.txt`.
 
 Si los botones del panel no responden al toque, revisar que exista un `EventSystem` en la escena y que la AR Camera tenga la etiqueta `MainCamera`.
 

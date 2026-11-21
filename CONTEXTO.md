@@ -4,34 +4,35 @@ Proyecto de la asignatura Realidad Aumentada: ESP32 + Unity 6 + Vuforia 11.4.4, 
 El enunciado y la arquitectura están en `README.md`. **No hay hardware físico**: el circuito está simulado
 (`simulador/simulador_esp32.py`) y modelado en 3D dentro de la app. Esto debe decirse así en la entrega.
 
-## Estado
+## Estado (20 de noviembre de 2026)
 
-- Proyecto de Unity en el Mac del usuario: carpeta `ProyectoRA` (Unity 6000.0.85f1, render Built-in,
-  Input System nuevo, TextMeshPro y Vuforia importados, licencia puesta, "Allow downloads over HTTP = Always allowed").
-- Escenas en `Assets/Scenes`: `Actividad1`, `Actividad2` (pruebas sin AR) y `Actividad2_AR`
-  (ARCamera + ImageTarget "From Image" con `marcador_ra`, ancho físico 0.14 m). El rastreo ya funcionó.
-- El código fuente de referencia está en este repo, en `unity/Assets/{Scripts,Editor}`. La copia dentro de
-  `ProyectoRA/Assets` puede estar desactualizada: copiar encima (sin borrar los `.meta`).
-- Nada del código C# se ha compilado fuera del Unity del usuario; las últimas versiones (modelo 3D realista,
-  multímetro virtual, menú AUTOMATICO) **aún no se han probado en Unity**.
+- Proyecto de Unity en el Mac del usuario: carpeta `~/ProyectoRA` (Unity 6000.0.85f1, render Built-in,
+  Input System nuevo, TextMeshPro y Vuforia importados, licencia puesta, HTTP permitido). Este repo está
+  clonado dentro, en `~/ProyectoRA/finalra`; `unity/` es una copia del proyecto **sin** la licencia de Vuforia
+  y **sin** el `.tgz` de Vuforia (138 MB).
+- Todo el código C# compila sin errores en Unity. La plataforma activa ya es **Android**
+  (IL2CPP, ARM64, API mínima 29, orientación vertical).
+- Escenas `Actividad1_AR` y `Actividad2_AR` montadas con el menú `RA > AUTOMATICO` y agregadas a Build Settings.
+  Un botón bajo la barra de conexión (`CambiarEscena`) pasa de una actividad a la otra.
+- Probado en modo Play contra el simulador (`127.0.0.1:8080`), de forma automática:
+  - Actividad 2: conexión, etiquetas N1/N2/N3, multímetro (panel y 3D), sondas invertidas, mismo nodo,
+    medición correcta, resumen de aciertos y toque sobre las etiquetas flotantes.
+  - Actividad 1: voltaje y porcentaje del potenciómetro, pulsador, LEDs desde la app, perilla y luces del modelo 3D.
+- APK generado: `~/ProyectoRA/Builds/ProyectoRA.apk` (menú `RA > Compilar APK para Android`).
+  **No se ha instalado en ningún teléfono.**
 
 ## Pendiente
 
-1. Copiar `unity/Assets/Scripts` y `unity/Assets/Editor` a `ProyectoRA/Assets` y corregir errores de compilación
-   (ver `~/Library/Logs/Unity/Editor.log`).
-2. En Unity, con `Actividad2_AR` abierta: menú `RA > AUTOMATICO - Montar Actividad 2 en esta escena AR`.
-   Luego `RA > AUTOMATICO - Crear escena Actividad1_AR copiando esta`.
-3. Probar con el simulador (`python3 simulador/simulador_esp32.py`, IP en la app: `127.0.0.1:8080`) y la página
-   `http://localhost:8080/`, que muestra el marcador y el circuito dibujado alineado con el modelo 3D.
-4. Revisar alineación del modelo 3D con el dibujo, que las etiquetas flotantes respondan al toque y el aspecto
-   de los materiales.
-5. Compilar para Android (módulo Android Build Support) y probar en el teléfono con `IP_DEL_MAC:8080`.
-6. Subir el proyecto de Unity al repo (`Assets`, `Packages`, `ProjectSettings`; el `.gitignore` ya excluye `Library`).
-   La licencia de Vuforia queda en `Assets/Resources/VuforiaConfiguration.asset` y el repo es público: avisar al usuario.
-7. Video de máximo 3 minutos y mensaje al profesor aclarando que el circuito es simulado.
+1. Instalar el APK en el teléfono y probar con el marcador real: IP `IP_DEL_MAC:8080` (Mac y teléfono en la misma Wi-Fi).
+2. Revisar con la cámara real la alineación del modelo 3D con el dibujo de la página del simulador.
+   Solo se verificó en renders (`~/ProyectoRA/Capturas`), no con rastreo.
+3. El simulador que estaba abierto en el Mac era una copia vieja (`~/Downloads/finalra-main 2`): cerrarlo y
+   abrir el de este repo, cuya página trae el dibujo alineado con el modelo 3D.
+4. Subir el proyecto al repo: hay un commit local preparado sin las claves de Vuforia; falta el `git push`.
+5. Video de máximo 3 minutos y mensaje al profesor aclarando que el circuito es simulado.
+6. Más adelante: reemplazar piezas por modelos 3D descargados (ESP32 y protoboard primero).
 
 ## Preferencias del usuario
 
 Habla español, no conoce Unity: dar pasos uno por uno, con el nombre exacto de menús y paneles, y pedir capturas.
-Quiere que el modelo se vea lo más real posible; más adelante le gustaría reemplazar piezas por modelos 3D
-descargados (ESP32 y protoboard primero).
+Quiere que el modelo se vea lo más real posible.

@@ -498,6 +498,12 @@ public static class ConstructorEscenasRA
         ui.campoIp = campoIp;
         ui.botonConectar = botonConectar;
         ui.textoEstado = textoEstado;
+
+        // Boton para pasar a la otra actividad (solo aparece si esa escena esta en la compilacion)
+        bool esActividad1 = cliente.rutaEstado == "/state";
+        Button botonCambiar = Boton(canvas, "BotonCambiarActividad", esActividad1 ? "Ir a Actividad 2" : "Ir a Actividad 1", 26,
+              Arriba, new Vector2(380, -140), new Vector2(300, 70));
+        botonCambiar.gameObject.AddComponent<CambiarEscena>().escena = esActividad1 ? "Actividad2_AR" : "Actividad1_AR";
     }
 
     // Altura a la que van los cables y los puntos de los nodos sobre la protoboard

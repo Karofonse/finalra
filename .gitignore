@@ -15,3 +15,5 @@
 # Arduino / PlatformIO
 .pio/
 build/
+# Paquete de Vuforia (138 MB, supera el limite de GitHub)
+unity/Packages/*.tgz
